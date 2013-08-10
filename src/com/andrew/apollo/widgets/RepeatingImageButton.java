@@ -78,14 +78,13 @@ public class RepeatingImageButton extends ImageButton implements OnClickListener
      */
     @Override
     public void onClick(final View view) {
-        switch (view.getId()) {
-            case R.id.action_button_previous:
-                MusicUtils.previous(getContext());
-                break;
-            case R.id.action_button_next:
-                MusicUtils.next();
-            default:
-                break;
+        int id = view.getId(); 
+        if ( id == R.id.action_button_previous) {
+            MusicUtils.previous(getContext());
+        } else if ( id == R.id.action_button_next) {
+            MusicUtils.next();
+        }
+        else {
         }
     }
 
@@ -191,15 +190,12 @@ public class RepeatingImageButton extends ImageButton implements OnClickListener
      * Sets the correct drawable for playback.
      */
     public void updateState() {
-        switch (getId()) {
-            case R.id.action_button_next:
-                setImageDrawable(mResources.getDrawable(NEXT));
-                break;
-            case R.id.action_button_previous:
-                setImageDrawable(mResources.getDrawable(PREVIOUS));
-                break;
-            default:
-                break;
+        int id = getId();
+        if (id == R.id.action_button_next) {
+            setImageDrawable(mResources.getDrawable(NEXT));
+        } else if (id == R.id.action_button_previous) {
+            setImageDrawable(mResources.getDrawable(PREVIOUS));
+        } else {
         }
     }
 

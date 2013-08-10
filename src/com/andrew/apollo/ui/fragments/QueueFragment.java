@@ -166,21 +166,20 @@ public class QueueFragment extends Fragment implements LoaderCallbacks<List<Song
      */
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menu_save_queue:
-                NowPlayingCursor queue = (NowPlayingCursor)QueueLoader
-                        .makeQueueCursor(getActivity());
-                CreateNewPlaylist.getInstance(MusicUtils.getSongListForCursor(queue)).show(
-                        getFragmentManager(), "CreatePlaylist");
-                queue.close();
-                queue = null;
-                return true;
-            case R.id.menu_clear_queue:
-                MusicUtils.clearQueue();
-                NavUtils.goHome(getActivity());
-                return true;
-            default:
-                break;
+        int itemId = item.getItemId();
+        if (itemId == R.id.menu_save_queue) {
+            NowPlayingCursor queue = (NowPlayingCursor)QueueLoader
+                    .makeQueueCursor(getActivity());
+            CreateNewPlaylist.getInstance(MusicUtils.getSongListForCursor(queue)).show(
+                    getFragmentManager(), "CreatePlaylist");
+            queue.close();
+            queue = null;
+            return true;
+        } else if (itemId == R.id.menu_clear_queue) {
+            MusicUtils.clearQueue();
+            NavUtils.goHome(getActivity());
+            return true;
+        } else {
         }
         return super.onOptionsItemSelected(item);
     }

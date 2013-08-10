@@ -330,47 +330,46 @@ public class AudioPlayerActivity extends FragmentActivity implements ServiceConn
      */
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                // Go back to the home activity
-                NavUtils.goHome(this);
-                return true;
-            case R.id.menu_shuffle:
-                // Shuffle all the songs
-                MusicUtils.shuffleAll(this);
-                // Refresh the queue
-                ((QueueFragment)mPagerAdapter.getFragment(0)).refreshQueue();
-                return true;
-            case R.id.menu_favorite:
-                // Toggle the current track as a favorite and update the menu
-                // item
-                MusicUtils.toggleFavorite();
-                invalidateOptionsMenu();
-                return true;
-            case R.id.menu_audio_player_ringtone:
-                // Set the current track as a ringtone
-                MusicUtils.setRingtone(this, MusicUtils.getCurrentAudioId());
-                return true;
-            case R.id.menu_audio_player_share:
-                // Share the current meta data
-                shareCurrentTrack();
-                return true;
-            case R.id.menu_audio_player_equalizer:
-                // Sound effects
-                NavUtils.openEffectsPanel(this);
-                return true;
-            case R.id.menu_settings:
-                // Settings
-                NavUtils.openSettings(this);
-                return true;
-            case R.id.menu_audio_player_delete:
-                // Delete current song
-                DeleteDialog.newInstance(MusicUtils.getTrackName(), new long[] {
-                    MusicUtils.getCurrentAudioId()
-                }, null).show(getSupportFragmentManager(), "DeleteDialog");
-                return true;
-            default:
-                break;
+        int itemId = item.getItemId();
+        if (itemId == android.R.id.home) {
+            // Go back to the home activity
+            NavUtils.goHome(this);
+            return true;
+        } else if (itemId == R.id.menu_shuffle) {
+            // Shuffle all the songs
+            MusicUtils.shuffleAll(this);
+            // Refresh the queue
+            ((QueueFragment)mPagerAdapter.getFragment(0)).refreshQueue();
+            return true;
+        } else if (itemId == R.id.menu_favorite) {
+            // Toggle the current track as a favorite and update the menu
+            // item
+            MusicUtils.toggleFavorite();
+            invalidateOptionsMenu();
+            return true;
+        } else if (itemId == R.id.menu_audio_player_ringtone) {
+            // Set the current track as a ringtone
+            MusicUtils.setRingtone(this, MusicUtils.getCurrentAudioId());
+            return true;
+        } else if (itemId == R.id.menu_audio_player_share) {
+            // Share the current meta data
+            shareCurrentTrack();
+            return true;
+        } else if (itemId == R.id.menu_audio_player_equalizer) {
+            // Sound effects
+            NavUtils.openEffectsPanel(this);
+            return true;
+        } else if (itemId == R.id.menu_settings) {
+            // Settings
+            NavUtils.openSettings(this);
+            return true;
+        } else if (itemId == R.id.menu_audio_player_delete) {
+            // Delete current song
+            DeleteDialog.newInstance(MusicUtils.getTrackName(), new long[] {
+                MusicUtils.getCurrentAudioId()
+            }, null).show(getSupportFragmentManager(), "DeleteDialog");
+            return true;
+        } else {
         }
         return super.onOptionsItemSelected(item);
     }

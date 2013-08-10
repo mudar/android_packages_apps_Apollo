@@ -68,15 +68,14 @@ public class ThemesActivity extends BaseActivity {
      */
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                finish();
-                return true;
-            case R.id.menu_shop:
-                mResources.shopFor(this);
-                return true;
-            default:
-                break;
+        int itemId = item.getItemId();
+        if (itemId == android.R.id.home) {
+            finish();
+            return true;
+        } else if (itemId == R.id.menu_shop) {
+            mResources.shopFor(this);
+            return true;
+        } else {
         }
         return super.onOptionsItemSelected(item);
     }
