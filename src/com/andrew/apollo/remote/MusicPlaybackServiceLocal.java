@@ -9,7 +9,25 @@
  * governing permissions and limitations under the License.
  */
 
-package com.andrew.apollo;
+package com.andrew.apollo.remote;
+
+import ca.mudar.apollo.remote.media.IMediaPlayer;
+import ca.mudar.apollo.remote.media.MediaPlayerLocal;
+
+import com.andrew.apollo.IApolloService;
+import com.andrew.apollo.MediaButtonIntentReceiver;
+import com.andrew.apollo.NotificationHelper;
+import com.andrew.apollo.appwidgets.AppWidgetLarge;
+import com.andrew.apollo.appwidgets.AppWidgetLargeAlternate;
+import com.andrew.apollo.appwidgets.AppWidgetSmall;
+import com.andrew.apollo.appwidgets.RecentWidgetProvider;
+import com.andrew.apollo.cache.ImageCache;
+import com.andrew.apollo.cache.ImageFetcher;
+import com.andrew.apollo.provider.FavoritesStore;
+import com.andrew.apollo.provider.RecentStore;
+import com.andrew.apollo.utils.ApolloUtils;
+import com.andrew.apollo.utils.Lists;
+import com.andrew.apollo.utils.MusicUtils;
 
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
@@ -29,7 +47,6 @@ import android.media.AudioManager;
 import android.media.AudioManager.OnAudioFocusChangeListener;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
-import android.media.MediaPlayer.OnCompletionListener;
 import android.media.RemoteControlClient;
 import android.media.audiofx.AudioEffect;
 import android.net.Uri;
@@ -47,19 +64,6 @@ import android.provider.MediaStore.Audio.AlbumColumns;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.util.Log;
 
-import com.andrew.apollo.appwidgets.AppWidgetLarge;
-import com.andrew.apollo.appwidgets.AppWidgetLargeAlternate;
-import com.andrew.apollo.appwidgets.AppWidgetSmall;
-import com.andrew.apollo.appwidgets.RecentWidgetProvider;
-import com.andrew.apollo.cache.ImageCache;
-import com.andrew.apollo.cache.ImageFetcher;
-import com.andrew.apollo.provider.FavoritesStore;
-import com.andrew.apollo.provider.RecentStore;
-import com.andrew.apollo.utils.ApolloUtils;
-import com.andrew.apollo.utils.Lists;
-import com.andrew.apollo.utils.MusicUtils;
-import com.andrew.apollo.utils.PreferenceUtils;
-
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.LinkedList;
@@ -71,174 +75,16 @@ import java.util.TreeSet;
  * and when the user moves Apollo into the background.
  */
 @SuppressLint("NewApi")
-public class MusicPlaybackService extends Service {
-    private static final String TAG = "MusicPlaybackService";
+public class MusicPlaybackServiceLocal extends Service implements IMusicPlaybackService {
+    private static final String TAG = "MusicPlaybackServiceLocal";
     private static final boolean D = false;
-
-    /**
-     * Indicates that the music has paused or resumed
-     */
-    public static final String PLAYSTATE_CHANGED = "com.andrew.apollo.playstatechanged";
-
-    /**
-     * Indicates that music playback position within
-     * a title was changed
-     */
-    public static final String POSITION_CHANGED = "com.android.apollo.positionchanged";
-
-    /**
-     * Indicates the meta data has changed in some way, like a track change
-     */
-    public static final String META_CHANGED = "com.andrew.apollo.metachanged";
-
-    /**
-     * Indicates the queue has been updated
-     */
-    public static final String QUEUE_CHANGED = "com.andrew.apollo.queuechanged";
-
-    /**
-     * Indicates the repeat mode chaned
-     */
-    public static final String REPEATMODE_CHANGED = "com.andrew.apollo.repeatmodechanged";
-
-    /**
-     * Indicates the shuffle mode chaned
-     */
-    public static final String SHUFFLEMODE_CHANGED = "com.andrew.apollo.shufflemodechanged";
-
-    /**
-     * For backwards compatibility reasons, also provide sticky
-     * broadcasts under the music package
-     */
-    public static final String APOLLO_PACKAGE_NAME = "com.andrew.apollo";
-    public static final String MUSIC_PACKAGE_NAME = "com.android.music";
-
-    /**
-     * Called to indicate a general service commmand. Used in
-     * {@link MediaButtonIntentReceiver}
-     */
-    public static final String SERVICECMD = "com.andrew.apollo.musicservicecommand";
-
-    /**
-     * Called to go toggle between pausing and playing the music
-     */
-    public static final String TOGGLEPAUSE_ACTION = "com.andrew.apollo.togglepause";
-
-    /**
-     * Called to go to pause the playback
-     */
-    public static final String PAUSE_ACTION = "com.andrew.apollo.pause";
-
-    /**
-     * Called to go to stop the playback
-     */
-    public static final String STOP_ACTION = "com.andrew.apollo.stop";
-
-    /**
-     * Called to go to the previous track
-     */
-    public static final String PREVIOUS_ACTION = "com.andrew.apollo.previous";
-
-    /**
-     * Called to go to the next track
-     */
-    public static final String NEXT_ACTION = "com.andrew.apollo.next";
-
-    /**
-     * Called to change the repeat mode
-     */
-    public static final String REPEAT_ACTION = "com.andrew.apollo.repeat";
-
-    /**
-     * Called to change the shuffle mode
-     */
-    public static final String SHUFFLE_ACTION = "com.andrew.apollo.shuffle";
-
-    /**
-     * Called to update the service about the foreground state of Apollo's activities
-     */
-    public static final String FOREGROUND_STATE_CHANGED = "com.andrew.apollo.fgstatechanged";
-
-    public static final String NOW_IN_FOREGROUND = "nowinforeground";
-
-    /**
-     * Used to easily notify a list that it should refresh. i.e. A playlist
-     * changes
-     */
-    public static final String REFRESH = "com.andrew.apollo.refresh";
 
     /**
      * Used by the alarm intent to shutdown the service after being idle
      */
     private static final String SHUTDOWN = "com.andrew.apollo.shutdown";
 
-    /**
-     * Called to update the remote control client
-     */
-    public static final String UPDATE_LOCKSCREEN = "com.andrew.apollo.updatelockscreen";
-
-    public static final String CMDNAME = "command";
-
-    public static final String CMDTOGGLEPAUSE = "togglepause";
-
-    public static final String CMDSTOP = "stop";
-
-    public static final String CMDPAUSE = "pause";
-
-    public static final String CMDPLAY = "play";
-
-    public static final String CMDPREVIOUS = "previous";
-
-    public static final String CMDNEXT = "next";
-
-    public static final String CMDNOTIF = "buttonId";
-
     private static final int IDCOLIDX = 0;
-
-    /**
-     * Moves a list to the front of the queue
-     */
-    public static final int NOW = 1;
-
-    /**
-     * Moves a list to the next position in the queue
-     */
-    public static final int NEXT = 2;
-
-    /**
-     * Moves a list to the last position in the queue
-     */
-    public static final int LAST = 3;
-
-    /**
-     * Shuffles no songs, turns shuffling off
-     */
-    public static final int SHUFFLE_NONE = 0;
-
-    /**
-     * Shuffles all songs
-     */
-    public static final int SHUFFLE_NORMAL = 1;
-
-    /**
-     * Party shuffle
-     */
-    public static final int SHUFFLE_AUTO = 2;
-
-    /**
-     * Turns repeat off
-     */
-    public static final int REPEAT_NONE = 0;
-
-    /**
-     * Repeats the current track in a list
-     */
-    public static final int REPEAT_CURRENT = 1;
-
-    /**
-     * Repeats all the tracks in a list
-     */
-    public static final int REPEAT_ALL = 2;
 
     /**
      * Indicates when the track ends
@@ -474,8 +320,10 @@ public class MusicPlaybackService extends Service {
      */
     private FavoritesStore mFavoritesCache;
 
-    /**
-     * {@inheritDoc}
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.andrew.apollo.IMusicPlaybackService#onBind(android.content.Intent)
      */
     @Override
     public IBinder onBind(final Intent intent) {
@@ -485,8 +333,10 @@ public class MusicPlaybackService extends Service {
         return mBinder;
     }
 
-    /**
-     * {@inheritDoc}
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.andrew.apollo.IMusicPlaybackService#onUnbind(android.content.Intent)
      */
     @Override
     public boolean onUnbind(final Intent intent) {
@@ -512,8 +362,10 @@ public class MusicPlaybackService extends Service {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.andrew.apollo.IMusicPlaybackService#onRebind(android.content.Intent)
      */
     @Override
     public void onRebind(final Intent intent) {
@@ -521,8 +373,9 @@ public class MusicPlaybackService extends Service {
         mServiceInUse = true;
     }
 
-    /**
-     * {@inheritDoc}
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#onCreate()
      */
     @Override
     public void onCreate() {
@@ -591,7 +444,7 @@ public class MusicPlaybackService extends Service {
         mWakeLock.setReferenceCounted(false);
 
         // Initialize the delayed shutdown intent
-        final Intent shutdownIntent = new Intent(this, MusicPlaybackService.class);
+        final Intent shutdownIntent = new Intent(this, MusicPlaybackServiceLocal.class);
         shutdownIntent.setAction(SHUTDOWN);
 
         mAlarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
@@ -647,8 +500,9 @@ public class MusicPlaybackService extends Service {
         mRemoteControlClient.setTransportControlFlags(flags);
     }
 
-    /**
-     * {@inheritDoc}
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#onDestroy()
      */
     @Override
     public void onDestroy() {
@@ -689,8 +543,11 @@ public class MusicPlaybackService extends Service {
         mWakeLock.release();
     }
 
-    /**
-     * {@inheritDoc}
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.andrew.apollo.IMusicPlaybackService#onStartCommand(android.content
+     * .Intent, int, int)
      */
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
@@ -804,10 +661,11 @@ public class MusicPlaybackService extends Service {
         return mCardId;
     }
 
-    /**
-     * Called when we receive a ACTION_MEDIA_EJECT notification.
-     *
-     * @param storagePath The path to mount point for the removed media
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.andrew.apollo.IMusicPlaybackService#closeExternalStorageFiles(java
+     * .lang.String)
      */
     public void closeExternalStorageFiles(final String storagePath) {
         stop(true);
@@ -815,11 +673,10 @@ public class MusicPlaybackService extends Service {
         notifyChange(META_CHANGED);
     }
 
-    /**
-     * Registers an intent to listen for ACTION_MEDIA_EJECT notifications. The
-     * intent will call closeExternalStorageFiles() if the external media is
-     * going to be ejected, so applications can clean up any files they have
-     * open.
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.andrew.apollo.IMusicPlaybackService#registerExternalStorageListener()
      */
     public void registerExternalStorageListener() {
         if (mUnmountReceiver == null) {
@@ -1546,10 +1403,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Opens a file and prepares it for playback
-     *
-     * @param path The path of the file to open
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#openFile(java.lang.String)
      */
     public boolean openFile(final String path) {
         if (D) Log.d(TAG, "openFile: path = " + path);
@@ -1572,7 +1428,7 @@ public class MusicPlaybackService extends Service {
                     uri = MediaStore.Audio.Media.getContentUriForPath(path);
                     where = MediaStore.Audio.Media.DATA + "=?";
                     selectionArgs = new String[] {
-                        path
+                            path
                     };
                 }
                 try {
@@ -1597,10 +1453,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Returns the audio session ID
-     *
-     * @return The current media player audio session ID
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getAudioSessionId()
      */
     public int getAudioSessionId() {
         synchronized (this) {
@@ -1608,38 +1463,33 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Indicates if the media storeage device has been mounted or not
-     *
-     * @return 1 if Intent.ACTION_MEDIA_MOUNTED is called, 0 otherwise
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getMediaMountedCount()
      */
     public int getMediaMountedCount() {
         return mMediaMountedCount;
     }
 
-    /**
-     * Returns the shuffle mode
-     *
-     * @return The current shuffle mode (all, party, none)
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getShuffleMode()
      */
     public int getShuffleMode() {
         return mShuffleMode;
     }
 
-    /**
-     * Returns the repeat mode
-     *
-     * @return The current repeat mode (all, one, none)
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getRepeatMode()
      */
     public int getRepeatMode() {
         return mRepeatMode;
     }
 
-    /**
-     * Removes all instances of the track with the given ID from the playlist.
-     *
-     * @param id The id to be removed
-     * @return how many instances of the track were removed
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#removeTrack(long)
      */
     public int removeTrack(final long id) {
         int numremoved = 0;
@@ -1657,14 +1507,9 @@ public class MusicPlaybackService extends Service {
         return numremoved;
     }
 
-    /**
-     * Removes the range of tracks specified from the play list. If a file
-     * within the range is the file currently being played, playback will move
-     * to the next file after the range.
-     *
-     * @param first The first file to be removed
-     * @param last The last file to be removed
-     * @return the number of tracks deleted
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#removeTracks(int, int)
      */
     public int removeTracks(final int first, final int last) {
         final int numremoved = removeTracksInternal(first, last);
@@ -1674,10 +1519,9 @@ public class MusicPlaybackService extends Service {
         return numremoved;
     }
 
-    /**
-     * Returns the position in the queue
-     *
-     * @return the current position in the queue
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getQueuePosition()
      */
     public int getQueuePosition() {
         synchronized (this) {
@@ -1685,10 +1529,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Returns the path to current song
-     *
-     * @return The path to the current song
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getPath()
      */
     public String getPath() {
         synchronized (this) {
@@ -1699,10 +1542,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Returns the album name
-     *
-     * @return The current song album Name
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getAlbumName()
      */
     public String getAlbumName() {
         synchronized (this) {
@@ -1713,10 +1555,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Returns the song name
-     *
-     * @return The current song name
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getTrackName()
      */
     public String getTrackName() {
         synchronized (this) {
@@ -1727,10 +1568,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Returns the artist name
-     *
-     * @return The current song artist name
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getArtistName()
      */
     public String getArtistName() {
         synchronized (this) {
@@ -1741,10 +1581,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Returns the artist name
-     *
-     * @return The current song artist name
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getAlbumArtistName()
      */
     public String getAlbumArtistName() {
         synchronized (this) {
@@ -1755,10 +1594,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Returns the album ID
-     *
-     * @return The current song album ID
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getAlbumId()
      */
     public long getAlbumId() {
         synchronized (this) {
@@ -1769,10 +1607,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Returns the artist ID
-     *
-     * @return The current song artist ID
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getArtistId()
      */
     public long getArtistId() {
         synchronized (this) {
@@ -1783,10 +1620,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Returns the current audio ID
-     *
-     * @return The current track ID
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getAudioId()
      */
     public long getAudioId() {
         synchronized (this) {
@@ -1797,11 +1633,9 @@ public class MusicPlaybackService extends Service {
         return -1;
     }
 
-    /**
-     * Seeks the current track to a specific time
-     *
-     * @param position The time to seek to
-     * @return The time to play the track at
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#seek(long)
      */
     public long seek(long position) {
         if (mPlayer.isInitialized()) {
@@ -1817,10 +1651,9 @@ public class MusicPlaybackService extends Service {
         return -1;
     }
 
-    /**
-     * Returns the current position in time of the currenttrack
-     *
-     * @return The current playback position in miliseconds
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#position()
      */
     public long position() {
         if (mPlayer.isInitialized()) {
@@ -1829,10 +1662,9 @@ public class MusicPlaybackService extends Service {
         return -1;
     }
 
-    /**
-     * Returns the full duration of the current track
-     *
-     * @return The duration of the current track in miliseconds
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#duration()
      */
     public long duration() {
         if (mPlayer.isInitialized()) {
@@ -1841,10 +1673,9 @@ public class MusicPlaybackService extends Service {
         return -1;
     }
 
-    /**
-     * Returns the queue
-     *
-     * @return The queue as a long[]
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getQueue()
      */
     public long[] getQueue() {
         synchronized (this) {
@@ -1857,15 +1688,17 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * @return True if music is playing, false otherwise
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#isPlaying()
      */
     public boolean isPlaying() {
         return mIsSupposedToBePlaying;
     }
 
-    /**
-     * True if the current track is a "favorite", false otherwise
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#isFavorite()
      */
     public boolean isFavorite() {
         if (mFavoritesCache != null) {
@@ -1877,11 +1710,9 @@ public class MusicPlaybackService extends Service {
         return false;
     }
 
-    /**
-     * Opens a list for playback
-     *
-     * @param list The list of tracks to open
-     * @param position The position to start playback at
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#open(long[], int)
      */
     public void open(final long[] list, final int position) {
         synchronized (this) {
@@ -1917,15 +1748,17 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Stops playback.
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#stop()
      */
     public void stop() {
         stop(true);
     }
 
-    /**
-     * Resumes or starts playback.
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#play()
      */
     public void play() {
         int status = mAudioManager.requestAudioFocus(mAudioFocusListener,
@@ -1963,8 +1796,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Temporarily pauses playback.
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#pause()
      */
     public void pause() {
         if (D) Log.d(TAG, "Pausing playback");
@@ -1979,8 +1813,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Changes from the current track to the next track
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#gotoNext(boolean)
      */
     public void gotoNext(final boolean force) {
         if (D) Log.d(TAG, "Going to next track");
@@ -2008,8 +1843,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Changes from the current track to the previous played track
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#prev()
      */
     public void prev() {
         if (D) Log.d(TAG, "Going to previous track");
@@ -2045,8 +1881,9 @@ public class MusicPlaybackService extends Service {
         openCurrentAndMaybeNext(false);
     }
 
-    /**
-     * Toggles the current song as a favorite.
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#toggleFavorite()
      */
     public void toggleFavorite() {
         if (mFavoritesCache != null) {
@@ -2057,11 +1894,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Moves an item in the queue from one position to another
-     *
-     * @param from The position the item is currently at
-     * @param to The position the item is being moved to
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#moveQueueItem(int, int)
      */
     public void moveQueueItem(int index1, int index2) {
         synchronized (this) {
@@ -2098,10 +1933,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Sets the repeat mode
-     *
-     * @param repeatmode The repeat mode to use
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#setRepeatMode(int)
      */
     public void setRepeatMode(final int repeatmode) {
         synchronized (this) {
@@ -2112,10 +1946,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Sets the shuffle mode
-     *
-     * @param shufflemode The shuffle mode to use
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#setShuffleMode(int)
      */
     public void setShuffleMode(final int shufflemode) {
         synchronized (this) {
@@ -2141,10 +1974,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Sets the position of a track in the queue
-     *
-     * @param index The position to place the track
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#setQueuePosition(int)
      */
     public void setQueuePosition(final int index) {
         synchronized (this) {
@@ -2159,11 +1991,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * Queues a new list for playback
-     *
-     * @param list The list to queue
-     * @param action The action to take
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#enqueue(long[], int)
      */
     public void enqueue(final long[] list, final int action) {
         synchronized (this) {
@@ -2220,8 +2050,9 @@ public class MusicPlaybackService extends Service {
         }
     }
 
-    /**
-     * @return The album art for the current album.
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#getAlbumArt()
      */
     public Bitmap getAlbumArt() {
         // Return the cached artwork
@@ -2230,8 +2061,9 @@ public class MusicPlaybackService extends Service {
         return bitmap;
     }
 
-    /**
-     * Called when one of the lists should refresh or requery.
+    /*
+     * (non-Javadoc)
+     * @see com.andrew.apollo.IMusicPlaybackService#refresh()
      */
     public void refresh() {
         notifyChange(REFRESH);
@@ -2247,17 +2079,17 @@ public class MusicPlaybackService extends Service {
 
             if (AppWidgetSmall.CMDAPPWIDGETUPDATE.equals(command)) {
                 final int[] small = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);
-                mAppWidgetSmall.performUpdate(MusicPlaybackService.this, small);
+                mAppWidgetSmall.performUpdate(MusicPlaybackServiceLocal.this, small);
             } else if (AppWidgetLarge.CMDAPPWIDGETUPDATE.equals(command)) {
                 final int[] large = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);
-                mAppWidgetLarge.performUpdate(MusicPlaybackService.this, large);
+                mAppWidgetLarge.performUpdate(MusicPlaybackServiceLocal.this, large);
             } else if (AppWidgetLargeAlternate.CMDAPPWIDGETUPDATE.equals(command)) {
                 final int[] largeAlt = intent
                         .getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);
-                mAppWidgetLargeAlternate.performUpdate(MusicPlaybackService.this, largeAlt);
+                mAppWidgetLargeAlternate.performUpdate(MusicPlaybackServiceLocal.this, largeAlt);
             } else if (RecentWidgetProvider.CMDAPPWIDGETUPDATE.equals(command)) {
                 final int[] recent = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);
-                mRecentWidgetProvider.performUpdate(MusicPlaybackService.this, recent);
+                mRecentWidgetProvider.performUpdate(MusicPlaybackServiceLocal.this, recent);
             } else {
                 handleCommandIntent(intent);
             }
@@ -2275,7 +2107,7 @@ public class MusicPlaybackService extends Service {
     };
 
     private static final class MusicPlayerHandler extends Handler {
-        private final WeakReference<MusicPlaybackService> mService;
+        private final WeakReference<MusicPlaybackServiceLocal> mService;
         private float mCurrentVolume = 1.0f;
 
         /**
@@ -2284,9 +2116,9 @@ public class MusicPlaybackService extends Service {
          * @param service The service to use.
          * @param looper The thread to run on.
          */
-        public MusicPlayerHandler(final MusicPlaybackService service, final Looper looper) {
+        public MusicPlayerHandler(final MusicPlaybackServiceLocal service, final Looper looper) {
             super(looper);
-            mService = new WeakReference<MusicPlaybackService>(service);
+            mService = new WeakReference<MusicPlaybackServiceLocal>(service);
         }
 
         /**
@@ -2294,7 +2126,7 @@ public class MusicPlaybackService extends Service {
          */
         @Override
         public void handleMessage(final Message msg) {
-            final MusicPlaybackService service = mService.get();
+            final MusicPlaybackServiceLocal service = mService.get();
             if (service == null) {
                 return;
             }
@@ -2432,11 +2264,11 @@ public class MusicPlaybackService extends Service {
     private static final class MultiPlayer implements MediaPlayer.OnErrorListener,
             MediaPlayer.OnCompletionListener {
 
-        private final WeakReference<MusicPlaybackService> mService;
+        private final WeakReference<MusicPlaybackServiceLocal> mService;
 
-        private MediaPlayer mCurrentMediaPlayer = new MediaPlayer();
+        private MediaPlayerLocal mCurrentMediaPlayer = new MediaPlayerLocal();
 
-        private MediaPlayer mNextMediaPlayer;
+        private MediaPlayerLocal mNextMediaPlayer;
 
         private Handler mHandler;
 
@@ -2445,8 +2277,8 @@ public class MusicPlaybackService extends Service {
         /**
          * Constructor of <code>MultiPlayer</code>
          */
-        public MultiPlayer(final MusicPlaybackService service) {
-            mService = new WeakReference<MusicPlaybackService>(service);
+        public MultiPlayer(final MusicPlaybackServiceLocal service) {
+            mService = new WeakReference<MusicPlaybackServiceLocal>(service);
             mCurrentMediaPlayer.setWakeMode(mService.get(), PowerManager.PARTIAL_WAKE_LOCK);
         }
 
@@ -2468,7 +2300,7 @@ public class MusicPlaybackService extends Service {
          * @return True if the <code>player</code> has been prepared and is
          *         ready to play, false otherwise
          */
-        private boolean setDataSourceImpl(final MediaPlayer player, final String path) {
+        private boolean setDataSourceImpl(final MediaPlayerLocal player, final String path) {
             try {
                 player.reset();
                 player.setOnPreparedListener(null);
@@ -2510,7 +2342,7 @@ public class MusicPlaybackService extends Service {
             if (path == null) {
                 return;
             }
-            mNextMediaPlayer = new MediaPlayer();
+            mNextMediaPlayer = new MediaPlayerLocal();
             mNextMediaPlayer.setWakeMode(mService.get(), PowerManager.PARTIAL_WAKE_LOCK);
             mNextMediaPlayer.setAudioSessionId(getAudioSessionId());
             if (setDataSourceImpl(mNextMediaPlayer, path)) {
@@ -2631,10 +2463,10 @@ public class MusicPlaybackService extends Service {
         @Override
         public boolean onError(final MediaPlayer mp, final int what, final int extra) {
             switch (what) {
-                case MediaPlayer.MEDIA_ERROR_SERVER_DIED:
+                case IMediaPlayer.MEDIA_ERROR_SERVER_DIED:
                     mIsInitialized = false;
                     mCurrentMediaPlayer.release();
-                    mCurrentMediaPlayer = new MediaPlayer();
+                    mCurrentMediaPlayer = new MediaPlayerLocal();
                     mCurrentMediaPlayer.setWakeMode(mService.get(), PowerManager.PARTIAL_WAKE_LOCK);
                     mHandler.sendMessageDelayed(mHandler.obtainMessage(SERVER_DIED), 2000);
                     return true;
@@ -2664,10 +2496,10 @@ public class MusicPlaybackService extends Service {
 
     private static final class ServiceStub extends IApolloService.Stub {
 
-        private final WeakReference<MusicPlaybackService> mService;
+        private final WeakReference<MusicPlaybackServiceLocal> mService;
 
-        private ServiceStub(final MusicPlaybackService service) {
-            mService = new WeakReference<MusicPlaybackService>(service);
+        private ServiceStub(final MusicPlaybackServiceLocal service) {
+            mService = new WeakReference<MusicPlaybackServiceLocal>(service);
         }
 
         /**
