@@ -11,6 +11,13 @@
 
 package com.andrew.apollo.appwidgets;
 
+import com.andrew.apollo.R;
+import com.andrew.apollo.remote.IMusicPlaybackService;
+import com.andrew.apollo.remote.PlaybackSpecificImplementation;
+import com.andrew.apollo.ui.activities.AudioPlayerActivity;
+import com.andrew.apollo.ui.activities.HomeActivity;
+import com.andrew.apollo.utils.ApolloUtils;
+
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
@@ -19,12 +26,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.widget.RemoteViews;
-
-import com.andrew.apollo.MusicPlaybackService;
-import com.andrew.apollo.R;
-import com.andrew.apollo.ui.activities.AudioPlayerActivity;
-import com.andrew.apollo.ui.activities.HomeActivity;
-import com.andrew.apollo.utils.ApolloUtils;
 
 /**
  * 4x2 App-Widget
@@ -52,8 +53,8 @@ public class AppWidgetLargeAlternate extends AppWidgetBase {
     public void onUpdate(final Context context, final AppWidgetManager appWidgetManager,
             final int[] appWidgetIds) {
         defaultAppWidget(context, appWidgetIds);
-        final Intent updateIntent = new Intent(MusicPlaybackService.SERVICECMD);
-        updateIntent.putExtra(MusicPlaybackService.CMDNAME,
+        final Intent updateIntent = new Intent(IMusicPlaybackService.SERVICECMD);
+        updateIntent.putExtra(IMusicPlaybackService.CMDNAME,
                 AppWidgetLargeAlternate.CMDAPPWIDGETUPDATE);
         updateIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
         updateIntent.setFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
@@ -93,14 +94,14 @@ public class AppWidgetLargeAlternate extends AppWidgetBase {
 
     /**
      * Handle a change notification coming over from
-     * {@link MusicPlaybackService}
+     * {@link IMusicPlaybackService}
      */
-    public void notifyChange(final MusicPlaybackService service, final String what) {
-        if (hasInstances(service)) {
-            if (MusicPlaybackService.META_CHANGED.equals(what)
-                    || MusicPlaybackService.PLAYSTATE_CHANGED.equals(what)
-                    || MusicPlaybackService.REPEATMODE_CHANGED.equals(what)
-                    || MusicPlaybackService.SHUFFLEMODE_CHANGED.equals(what)) {
+    public void notifyChange(final IMusicPlaybackService service, final String what) {
+        if (hasInstances((Context) service)) {
+            if (IMusicPlaybackService.META_CHANGED.equals(what)
+                    || IMusicPlaybackService.PLAYSTATE_CHANGED.equals(what)
+                    || IMusicPlaybackService.REPEATMODE_CHANGED.equals(what)
+                    || IMusicPlaybackService.SHUFFLEMODE_CHANGED.equals(what)) {
                 performUpdate(service, null);
             }
         }
@@ -109,8 +110,8 @@ public class AppWidgetLargeAlternate extends AppWidgetBase {
     /**
      * Update all active widget instances by pushing changes
      */
-    public void performUpdate(final MusicPlaybackService service, final int[] appWidgetIds) {
-        final RemoteViews appWidgetView = new RemoteViews(service.getPackageName(),
+    public void performUpdate(final IMusicPlaybackService service, final int[] appWidgetIds) {
+        final RemoteViews appWidgetView = new RemoteViews(((Context) service).getPackageName(),
                 R.layout.app_widget_large_alternate);
 
         final CharSequence trackName = service.getTrackName();
@@ -131,24 +132,24 @@ public class AppWidgetLargeAlternate extends AppWidgetBase {
                     R.drawable.btn_playback_pause);
             if (ApolloUtils.hasJellyBean()) {
                 appWidgetView.setContentDescription(R.id.app_widget_large_alternate_play,
-                        service.getString(R.string.accessibility_pause));
+                        ((Context) service).getString(R.string.accessibility_pause));
             }
         } else {
             appWidgetView.setImageViewResource(R.id.app_widget_large_alternate_play,
                     R.drawable.btn_playback_play);
             if (ApolloUtils.hasJellyBean()) {
                 appWidgetView.setContentDescription(R.id.app_widget_large_alternate_play,
-                        service.getString(R.string.accessibility_play));
+                        ((Context) service).getString(R.string.accessibility_play));
             }
         }
 
         // Set the correct drawable for the repeat state
         switch (service.getRepeatMode()) {
-            case MusicPlaybackService.REPEAT_ALL:
+            case IMusicPlaybackService.REPEAT_ALL:
                 appWidgetView.setImageViewResource(R.id.app_widget_large_alternate_repeat,
                         R.drawable.btn_playback_repeat_all);
                 break;
-            case MusicPlaybackService.REPEAT_CURRENT:
+            case IMusicPlaybackService.REPEAT_CURRENT:
                 appWidgetView.setImageViewResource(R.id.app_widget_large_alternate_repeat,
                         R.drawable.btn_playback_repeat_one);
                 break;
@@ -160,11 +161,11 @@ public class AppWidgetLargeAlternate extends AppWidgetBase {
 
         // Set the correct drawable for the shuffle state
         switch (service.getShuffleMode()) {
-            case MusicPlaybackService.SHUFFLE_NONE:
+            case IMusicPlaybackService.SHUFFLE_NONE:
                 appWidgetView.setImageViewResource(R.id.app_widget_large_alternate_shuffle,
                         R.drawable.btn_playback_shuffle);
                 break;
-            case MusicPlaybackService.SHUFFLE_AUTO:
+            case IMusicPlaybackService.SHUFFLE_AUTO:
                 appWidgetView.setImageViewResource(R.id.app_widget_large_alternate_shuffle,
                         R.drawable.btn_playback_shuffle_all);
                 break;
@@ -175,10 +176,10 @@ public class AppWidgetLargeAlternate extends AppWidgetBase {
         }
 
         // Link actions buttons to intents
-        linkButtons(service, appWidgetView, isPlaying);
+        linkButtons(((Context) service), appWidgetView, isPlaying);
 
         // Update the app-widget
-        pushUpdate(service, appWidgetIds, appWidgetView);
+        pushUpdate(((Context) service), appWidgetIds, appWidgetView);
     }
 
     /**
@@ -193,7 +194,7 @@ public class AppWidgetLargeAlternate extends AppWidgetBase {
         Intent action;
         PendingIntent pendingIntent;
 
-        final ComponentName serviceName = new ComponentName(context, MusicPlaybackService.class);
+        final ComponentName serviceName = new ComponentName(context, PlaybackSpecificImplementation.getMusicPlaybackServiceClass());
 
         // Now playing
         if (playerActive) {
@@ -211,23 +212,23 @@ public class AppWidgetLargeAlternate extends AppWidgetBase {
             views.setOnClickPendingIntent(R.id.app_widget_large_alternate_image, pendingIntent);
         }
         // Shuffle modes
-        pendingIntent = buildPendingIntent(context, MusicPlaybackService.SHUFFLE_ACTION, serviceName);
+        pendingIntent = buildPendingIntent(context, IMusicPlaybackService.SHUFFLE_ACTION, serviceName);
         views.setOnClickPendingIntent(R.id.app_widget_large_alternate_shuffle, pendingIntent);
 
         // Previous track
-        pendingIntent = buildPendingIntent(context, MusicPlaybackService.PREVIOUS_ACTION, serviceName);
+        pendingIntent = buildPendingIntent(context, IMusicPlaybackService.PREVIOUS_ACTION, serviceName);
         views.setOnClickPendingIntent(R.id.app_widget_large_alternate_previous, pendingIntent);
 
         // Play and pause
-        pendingIntent = buildPendingIntent(context, MusicPlaybackService.TOGGLEPAUSE_ACTION, serviceName);
+        pendingIntent = buildPendingIntent(context, IMusicPlaybackService.TOGGLEPAUSE_ACTION, serviceName);
         views.setOnClickPendingIntent(R.id.app_widget_large_alternate_play, pendingIntent);
 
         // Next track
-        pendingIntent = buildPendingIntent(context, MusicPlaybackService.NEXT_ACTION, serviceName);
+        pendingIntent = buildPendingIntent(context, IMusicPlaybackService.NEXT_ACTION, serviceName);
         views.setOnClickPendingIntent(R.id.app_widget_large_alternate_next, pendingIntent);
 
         // Repeat modes
-        pendingIntent = buildPendingIntent(context, MusicPlaybackService.REPEAT_ACTION, serviceName);
+        pendingIntent = buildPendingIntent(context, IMusicPlaybackService.REPEAT_ACTION, serviceName);
         views.setOnClickPendingIntent(R.id.app_widget_large_alternate_repeat, pendingIntent);
     }
 

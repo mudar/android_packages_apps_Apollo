@@ -19,8 +19,8 @@ import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
 import android.widget.ImageButton;
 
-import com.andrew.apollo.MusicPlaybackService;
 import com.andrew.apollo.R;
+import com.andrew.apollo.remote.IMusicPlaybackService;
 import com.andrew.apollo.utils.ApolloUtils;
 import com.andrew.apollo.utils.MusicUtils;
 import com.andrew.apollo.utils.ThemeUtils;
@@ -97,15 +97,15 @@ public class RepeatButton extends ImageButton implements OnClickListener, OnLong
      */
     public void updateRepeatState() {
         switch (MusicUtils.getRepeatMode()) {
-            case MusicPlaybackService.REPEAT_ALL:
+            case IMusicPlaybackService.REPEAT_ALL:
                 setContentDescription(getResources().getString(R.string.accessibility_repeat_all));
                 setImageDrawable(mResources.getDrawable(REPEAT_ALL));
                 break;
-            case MusicPlaybackService.REPEAT_CURRENT:
+            case IMusicPlaybackService.REPEAT_CURRENT:
                 setContentDescription(getResources().getString(R.string.accessibility_repeat_one));
                 setImageDrawable(mResources.getDrawable(REPEAT_CURRENT));
                 break;
-            case MusicPlaybackService.REPEAT_NONE:
+            case IMusicPlaybackService.REPEAT_NONE:
                 setContentDescription(getResources().getString(R.string.accessibility_repeat));
                 setImageDrawable(mResources.getDrawable(REPEAT_NONE));
                 break;

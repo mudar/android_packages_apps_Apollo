@@ -11,22 +11,21 @@
 
 package com.andrew.apollo.cache;
 
-import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.text.TextUtils;
-import android.widget.ImageView;
-
 import com.andrew.apollo.Config;
-import com.andrew.apollo.MusicPlaybackService;
 import com.andrew.apollo.lastfm.Album;
 import com.andrew.apollo.lastfm.Artist;
 import com.andrew.apollo.lastfm.Image;
 import com.andrew.apollo.lastfm.ImageSize;
 import com.andrew.apollo.lastfm.PaginatedResult;
-import com.andrew.apollo.utils.ApolloUtils;
+import com.andrew.apollo.remote.IMusicPlaybackService;
 import com.andrew.apollo.utils.MusicUtils;
 import com.andrew.apollo.utils.PreferenceUtils;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.text.TextUtils;
+import android.widget.ImageView;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -238,7 +237,7 @@ public class ImageFetcher extends ImageWorker {
     }
 
     /**
-     * Finds cached or downloads album art. Used in {@link MusicPlaybackService}
+     * Finds cached or downloads album art. Used in {@link IMusicPlaybackService}
      * to set the current album art in the notification and lock screen
      *
      * @param albumName The name of the current album

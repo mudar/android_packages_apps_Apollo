@@ -19,6 +19,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.view.KeyEvent;
 
+import com.andrew.apollo.remote.IMusicPlaybackService;
+import com.andrew.apollo.remote.PlaybackSpecificImplementation;
 import com.andrew.apollo.ui.activities.HomeActivity;
 
 /**
@@ -68,9 +70,9 @@ public class MediaButtonIntentReceiver extends BroadcastReceiver {
     public void onReceive(final Context context, final Intent intent) {
         final String intentAction = intent.getAction();
         if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intentAction)) {
-            final Intent i = new Intent(context, MusicPlaybackService.class);
-            i.setAction(MusicPlaybackService.SERVICECMD);
-            i.putExtra(MusicPlaybackService.CMDNAME, MusicPlaybackService.CMDPAUSE);
+            final Intent i = new Intent(context, PlaybackSpecificImplementation.getMusicPlaybackServiceClass());
+            i.setAction(IMusicPlaybackService.SERVICECMD);
+            i.putExtra(IMusicPlaybackService.CMDNAME, IMusicPlaybackService.CMDPAUSE);
             context.startService(i);
         } else if (Intent.ACTION_MEDIA_BUTTON.equals(intentAction)) {
             final KeyEvent event = (KeyEvent)intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
@@ -85,29 +87,29 @@ public class MediaButtonIntentReceiver extends BroadcastReceiver {
             String command = null;
             switch (keycode) {
                 case KeyEvent.KEYCODE_MEDIA_STOP:
-                    command = MusicPlaybackService.CMDSTOP;
+                    command = IMusicPlaybackService.CMDSTOP;
                     break;
                 case KeyEvent.KEYCODE_HEADSETHOOK:
                 case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-                    command = MusicPlaybackService.CMDTOGGLEPAUSE;
+                    command = IMusicPlaybackService.CMDTOGGLEPAUSE;
                     break;
                 case KeyEvent.KEYCODE_MEDIA_NEXT:
-                    command = MusicPlaybackService.CMDNEXT;
+                    command = IMusicPlaybackService.CMDNEXT;
                     break;
                 case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
-                    command = MusicPlaybackService.CMDPREVIOUS;
+                    command = IMusicPlaybackService.CMDPREVIOUS;
                     break;
                 case KeyEvent.KEYCODE_MEDIA_PAUSE:
-                    command = MusicPlaybackService.CMDPAUSE;
+                    command = IMusicPlaybackService.CMDPAUSE;
                     break;
                 case KeyEvent.KEYCODE_MEDIA_PLAY:
-                    command = MusicPlaybackService.CMDPLAY;
+                    command = IMusicPlaybackService.CMDPLAY;
                     break;
             }
             if (command != null) {
                 if (action == KeyEvent.ACTION_DOWN) {
                     if (mDown) {
-                        if ((MusicPlaybackService.CMDTOGGLEPAUSE.equals(command) || MusicPlaybackService.CMDPLAY
+                        if ((IMusicPlaybackService.CMDTOGGLEPAUSE.equals(command) || IMusicPlaybackService.CMDPLAY
                                 .equals(command))
                                 && mLastClickTime != 0
                                 && eventtime - mLastClickTime > LONG_PRESS_DELAY) {
@@ -126,15 +128,15 @@ public class MediaButtonIntentReceiver extends BroadcastReceiver {
                         // The service may or may not be running, but we need to
                         // send it
                         // a command.
-                        final Intent i = new Intent(context, MusicPlaybackService.class);
-                        i.setAction(MusicPlaybackService.SERVICECMD);
+                        final Intent i = new Intent(context, PlaybackSpecificImplementation.getMusicPlaybackServiceClass());
+                        i.setAction(IMusicPlaybackService.SERVICECMD);
                         if (keycode == KeyEvent.KEYCODE_HEADSETHOOK
                                 && eventtime - mLastClickTime < DOUBLE_CLICK) {
-                            i.putExtra(MusicPlaybackService.CMDNAME, MusicPlaybackService.CMDNEXT);
+                            i.putExtra(IMusicPlaybackService.CMDNAME, IMusicPlaybackService.CMDNEXT);
                             context.startService(i);
                             mLastClickTime = 0;
                         } else {
-                            i.putExtra(MusicPlaybackService.CMDNAME, command);
+                            i.putExtra(IMusicPlaybackService.CMDNAME, command);
                             context.startService(i);
                             mLastClickTime = eventtime;
                         }

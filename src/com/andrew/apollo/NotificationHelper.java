@@ -11,19 +11,22 @@
 
 package com.andrew.apollo;
 
+import com.andrew.apollo.remote.IMusicPlaybackService;
+import com.andrew.apollo.remote.PlaybackSpecificImplementation;
+import com.andrew.apollo.utils.ApolloUtils;
+
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.support.v4.app.NotificationCompat;
-import android.util.Log;
 import android.widget.RemoteViews;
-
-import com.andrew.apollo.utils.ApolloUtils;
 
 /**
  * Builds the notification for Apollo's service. Jelly Bean and higher uses the
@@ -47,7 +50,7 @@ public class NotificationHelper {
     /**
      * Context
      */
-    private final MusicPlaybackService mService;
+    private final IMusicPlaybackService mService;
 
     /**
      * Custom notification layout
@@ -69,9 +72,9 @@ public class NotificationHelper {
      *
      * @param service The {@link Context} to use
      */
-    public NotificationHelper(final MusicPlaybackService service) {
+    public NotificationHelper(final IMusicPlaybackService service) {
         mService = service;
-        mNotificationManager = (NotificationManager)service
+        mNotificationManager = (NotificationManager)((Context) service)
                 .getSystemService(Context.NOTIFICATION_SERVICE);
     }
 
@@ -83,14 +86,14 @@ public class NotificationHelper {
             final boolean isPlaying) {
 
         // Default notfication layout
-        mNotificationTemplate = new RemoteViews(mService.getPackageName(),
+        mNotificationTemplate = new RemoteViews(((Context) mService).getPackageName(),
                 R.layout.notification_template_base);
 
         // Set up the content view
         initCollapsedLayout(trackName, artistName, albumArt);
 
         // Notification Builder
-        mNotification = new NotificationCompat.Builder(mService)
+        mNotification = new NotificationCompat.Builder((Context) mService)
                 .setSmallIcon(R.drawable.stat_notify_music)
                 .setContentIntent(getPendingIntent())
                 .setPriority(Notification.PRIORITY_DEFAULT)
@@ -100,7 +103,7 @@ public class NotificationHelper {
         initPlaybackActions(isPlaying);
         if (ApolloUtils.hasJellyBean()) {
             // Expanded notifiction style
-            mExpandedView = new RemoteViews(mService.getPackageName(),
+            mExpandedView = new RemoteViews(((Context) mService).getPackageName(),
                     R.layout.notification_template_expanded_base);
             mNotification.bigContentView = mExpandedView;
             // Control playback from the notification
@@ -108,14 +111,14 @@ public class NotificationHelper {
             // Set up the expanded content view
             initExpandedLayout(trackName, albumName, artistName, albumArt);
         }
-        mService.startForeground(APOLLO_MUSIC_SERVICE, mNotification);
+        ((Service) mService).startForeground(APOLLO_MUSIC_SERVICE, mNotification);
     }
 
     /**
      * Remove notification
      */
     public void killNotification() {
-        mService.stopForeground(true);
+        ((Service) mService).stopForeground(true);
         mNotification = null;
     }
 
@@ -144,7 +147,7 @@ public class NotificationHelper {
      * Open to the now playing screen
      */
     private PendingIntent getPendingIntent() {
-        return PendingIntent.getActivity(mService, 0, new Intent("com.andrew.apollo.AUDIO_PLAYER")
+        return PendingIntent.getActivity((Context) mService, 0, new Intent("com.andrew.apollo.AUDIO_PLAYER")
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), 0);
     }
 
@@ -206,31 +209,31 @@ public class NotificationHelper {
     private final PendingIntent retreivePlaybackActions(final int which) {
         Intent action;
         PendingIntent pendingIntent;
-        final ComponentName serviceName = new ComponentName(mService, MusicPlaybackService.class);
+        final ComponentName serviceName = new ComponentName((Context) mService, PlaybackSpecificImplementation.getMusicPlaybackServiceClass());
         switch (which) {
             case 1:
                 // Play and pause
-                action = new Intent(MusicPlaybackService.TOGGLEPAUSE_ACTION);
+                action = new Intent(IMusicPlaybackService.TOGGLEPAUSE_ACTION);
                 action.setComponent(serviceName);
-                pendingIntent = PendingIntent.getService(mService, 1, action, 0);
+                pendingIntent = PendingIntent.getService((Context) mService, 1, action, 0);
                 return pendingIntent;
             case 2:
                 // Skip tracks
-                action = new Intent(MusicPlaybackService.NEXT_ACTION);
+                action = new Intent(IMusicPlaybackService.NEXT_ACTION);
                 action.setComponent(serviceName);
-                pendingIntent = PendingIntent.getService(mService, 2, action, 0);
+                pendingIntent = PendingIntent.getService((Context) mService, 2, action, 0);
                 return pendingIntent;
             case 3:
                 // Previous tracks
-                action = new Intent(MusicPlaybackService.PREVIOUS_ACTION);
+                action = new Intent(IMusicPlaybackService.PREVIOUS_ACTION);
                 action.setComponent(serviceName);
-                pendingIntent = PendingIntent.getService(mService, 3, action, 0);
+                pendingIntent = PendingIntent.getService((Context) mService, 3, action, 0);
                 return pendingIntent;
             case 4:
                 // Stop and collapse the notification
-                action = new Intent(MusicPlaybackService.STOP_ACTION);
+                action = new Intent(IMusicPlaybackService.STOP_ACTION);
                 action.setComponent(serviceName);
-                pendingIntent = PendingIntent.getService(mService, 4, action, 0);
+                pendingIntent = PendingIntent.getService((Context) mService, 4, action, 0);
                 return pendingIntent;
             default:
                 break;

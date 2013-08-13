@@ -19,8 +19,8 @@ import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
 import android.widget.ImageButton;
 
-import com.andrew.apollo.MusicPlaybackService;
 import com.andrew.apollo.R;
+import com.andrew.apollo.remote.IMusicPlaybackService;
 import com.andrew.apollo.utils.ApolloUtils;
 import com.andrew.apollo.utils.MusicUtils;
 import com.andrew.apollo.utils.ThemeUtils;
@@ -90,15 +90,15 @@ public class ShuffleButton extends ImageButton implements OnClickListener, OnLon
      */
     public void updateShuffleState() {
         switch (MusicUtils.getShuffleMode()) {
-            case MusicPlaybackService.SHUFFLE_NORMAL:
+            case IMusicPlaybackService.SHUFFLE_NORMAL:
                 setContentDescription(getResources().getString(R.string.accessibility_shuffle_all));
                 setImageDrawable(mResources.getDrawable(SHUFFLE_ALL));
                 break;
-            case MusicPlaybackService.SHUFFLE_AUTO:
+            case IMusicPlaybackService.SHUFFLE_AUTO:
                 setContentDescription(getResources().getString(R.string.accessibility_shuffle_all));
                 setImageDrawable(mResources.getDrawable(SHUFFLE_ALL));
                 break;
-            case MusicPlaybackService.SHUFFLE_NONE:
+            case IMusicPlaybackService.SHUFFLE_NONE:
                 setContentDescription(getResources().getString(R.string.accessibility_shuffle));
                 setImageDrawable(mResources.getDrawable(SHUFFLE));
                 break;

@@ -49,10 +49,10 @@ import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 
 import com.andrew.apollo.IApolloService;
-import com.andrew.apollo.MusicPlaybackService;
 import com.andrew.apollo.R;
 import com.andrew.apollo.adapters.PagerAdapter;
 import com.andrew.apollo.cache.ImageFetcher;
+import com.andrew.apollo.remote.IMusicPlaybackService;
 import com.andrew.apollo.ui.fragments.QueueFragment;
 import com.andrew.apollo.menu.DeleteDialog;
 import com.andrew.apollo.utils.ApolloUtils;
@@ -413,14 +413,14 @@ public class AudioPlayerActivity extends FragmentActivity implements ServiceConn
         super.onStart();
         final IntentFilter filter = new IntentFilter();
         // Play and pause changes
-        filter.addAction(MusicPlaybackService.PLAYSTATE_CHANGED);
+        filter.addAction(IMusicPlaybackService.PLAYSTATE_CHANGED);
         // Shuffle and repeat changes
-        filter.addAction(MusicPlaybackService.SHUFFLEMODE_CHANGED);
-        filter.addAction(MusicPlaybackService.REPEATMODE_CHANGED);
+        filter.addAction(IMusicPlaybackService.SHUFFLEMODE_CHANGED);
+        filter.addAction(IMusicPlaybackService.REPEATMODE_CHANGED);
         // Track changes
-        filter.addAction(MusicPlaybackService.META_CHANGED);
+        filter.addAction(IMusicPlaybackService.META_CHANGED);
         // Update a list, probably the playlist fragment's
-        filter.addAction(MusicPlaybackService.REFRESH);
+        filter.addAction(IMusicPlaybackService.REFRESH);
         registerReceiver(mPlaybackStatus, filter);
         // Refresh the current time
         final long next = refreshCurrentTime();
@@ -923,16 +923,16 @@ public class AudioPlayerActivity extends FragmentActivity implements ServiceConn
         @Override
         public void onReceive(final Context context, final Intent intent) {
             final String action = intent.getAction();
-            if (action.equals(MusicPlaybackService.META_CHANGED)) {
+            if (action.equals(IMusicPlaybackService.META_CHANGED)) {
                 // Current info
                 mReference.get().updateNowPlayingInfo();
                 // Update the favorites icon
                 mReference.get().invalidateOptionsMenu();
-            } else if (action.equals(MusicPlaybackService.PLAYSTATE_CHANGED)) {
+            } else if (action.equals(IMusicPlaybackService.PLAYSTATE_CHANGED)) {
                 // Set the play and pause image
                 mReference.get().mPlayPauseButton.updateState();
-            } else if (action.equals(MusicPlaybackService.REPEATMODE_CHANGED)
-                    || action.equals(MusicPlaybackService.SHUFFLEMODE_CHANGED)) {
+            } else if (action.equals(IMusicPlaybackService.REPEATMODE_CHANGED)
+                    || action.equals(IMusicPlaybackService.SHUFFLEMODE_CHANGED)) {
                 // Set the repeat image
                 mReference.get().mRepeatButton.updateRepeatState();
                 // Set the shuffle image

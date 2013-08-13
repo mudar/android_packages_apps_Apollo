@@ -11,6 +11,20 @@
 
 package com.andrew.apollo.utils;
 
+import com.andrew.apollo.IApolloService;
+import com.andrew.apollo.R;
+import com.andrew.apollo.loaders.FavoritesLoader;
+import com.andrew.apollo.loaders.LastAddedLoader;
+import com.andrew.apollo.loaders.PlaylistLoader;
+import com.andrew.apollo.loaders.SongLoader;
+import com.andrew.apollo.menu.FragmentMenuItems;
+import com.andrew.apollo.provider.FavoritesStore;
+import com.andrew.apollo.provider.FavoritesStore.FavoriteColumns;
+import com.andrew.apollo.provider.RecentStore;
+import com.andrew.apollo.remote.IMusicPlaybackService;
+import com.andrew.apollo.remote.PlaybackSpecificImplementation;
+import com.devspark.appmsg.AppMsg;
+
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.ContentResolver;
@@ -37,23 +51,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.SubMenu;
 
-import com.andrew.apollo.IApolloService;
-import com.andrew.apollo.MusicPlaybackService;
-import com.andrew.apollo.R;
-import com.andrew.apollo.loaders.FavoritesLoader;
-import com.andrew.apollo.loaders.LastAddedLoader;
-import com.andrew.apollo.loaders.PlaylistLoader;
-import com.andrew.apollo.loaders.SongLoader;
-import com.andrew.apollo.menu.FragmentMenuItems;
-import com.andrew.apollo.provider.FavoritesStore;
-import com.andrew.apollo.provider.FavoritesStore.FavoriteColumns;
-import com.andrew.apollo.provider.RecentStore;
-import com.devspark.appmsg.AppMsg;
-
 import java.io.File;
 import java.util.Arrays;
-import java.util.Formatter;
-import java.util.Locale;
 import java.util.WeakHashMap;
 
 /**
@@ -94,10 +93,10 @@ public final class MusicUtils {
             realActivity = (Activity)context;
         }
         final ContextWrapper contextWrapper = new ContextWrapper(realActivity);
-        contextWrapper.startService(new Intent(contextWrapper, MusicPlaybackService.class));
+        contextWrapper.startService(new Intent(contextWrapper, PlaybackSpecificImplementation.getMusicPlaybackServiceClass()));
         final ServiceBinder binder = new ServiceBinder(callback);
         if (contextWrapper.bindService(
-                new Intent().setClass(contextWrapper, MusicPlaybackService.class), binder, 0)) {
+                new Intent().setClass(contextWrapper, PlaybackSpecificImplementation.getMusicPlaybackServiceClass()), binder, 0)) {
             mConnectionMap.put(contextWrapper, binder);
             return new ServiceToken(contextWrapper);
         }
@@ -221,13 +220,13 @@ public final class MusicUtils {
      *       {@link MusicPlaybackService.#openCurrent()} is called in {@link
      *       MusicPlaybackService.#prev()}. {@code #startService(Intent intent)}
      *       is called here to specifically invoke the onStartCommand used by
-     *       {@link MusicPlaybackService}, which states if the current position
+     *       {@link IMusicPlaybackService}, which states if the current position
      *       less than 2000 ms, start the track over, otherwise move to the
      *       previously listened track.
      */
     public static void previous(final Context context) {
-        final Intent previous = new Intent(context, MusicPlaybackService.class);
-        previous.setAction(MusicPlaybackService.PREVIOUS_ACTION);
+        final Intent previous = new Intent(context, PlaybackSpecificImplementation.getMusicPlaybackServiceClass());
+        previous.setAction(IMusicPlaybackService.PREVIOUS_ACTION);
         context.startService(previous);
     }
 
@@ -254,17 +253,17 @@ public final class MusicUtils {
         try {
             if (mService != null) {
                 switch (mService.getRepeatMode()) {
-                    case MusicPlaybackService.REPEAT_NONE:
-                        mService.setRepeatMode(MusicPlaybackService.REPEAT_ALL);
+                    case IMusicPlaybackService.REPEAT_NONE:
+                        mService.setRepeatMode(IMusicPlaybackService.REPEAT_ALL);
                         break;
-                    case MusicPlaybackService.REPEAT_ALL:
-                        mService.setRepeatMode(MusicPlaybackService.REPEAT_CURRENT);
-                        if (mService.getShuffleMode() != MusicPlaybackService.SHUFFLE_NONE) {
-                            mService.setShuffleMode(MusicPlaybackService.SHUFFLE_NONE);
+                    case IMusicPlaybackService.REPEAT_ALL:
+                        mService.setRepeatMode(IMusicPlaybackService.REPEAT_CURRENT);
+                        if (mService.getShuffleMode() != IMusicPlaybackService.SHUFFLE_NONE) {
+                            mService.setShuffleMode(IMusicPlaybackService.SHUFFLE_NONE);
                         }
                         break;
                     default:
-                        mService.setRepeatMode(MusicPlaybackService.REPEAT_NONE);
+                        mService.setRepeatMode(IMusicPlaybackService.REPEAT_NONE);
                         break;
                 }
             }
@@ -279,17 +278,17 @@ public final class MusicUtils {
         try {
             if (mService != null) {
                 switch (mService.getShuffleMode()) {
-                    case MusicPlaybackService.SHUFFLE_NONE:
-                        mService.setShuffleMode(MusicPlaybackService.SHUFFLE_NORMAL);
-                        if (mService.getRepeatMode() == MusicPlaybackService.REPEAT_CURRENT) {
-                            mService.setRepeatMode(MusicPlaybackService.REPEAT_ALL);
+                    case IMusicPlaybackService.SHUFFLE_NONE:
+                        mService.setShuffleMode(IMusicPlaybackService.SHUFFLE_NORMAL);
+                        if (mService.getRepeatMode() == IMusicPlaybackService.REPEAT_CURRENT) {
+                            mService.setRepeatMode(IMusicPlaybackService.REPEAT_ALL);
                         }
                         break;
-                    case MusicPlaybackService.SHUFFLE_NORMAL:
-                        mService.setShuffleMode(MusicPlaybackService.SHUFFLE_NONE);
+                    case IMusicPlaybackService.SHUFFLE_NORMAL:
+                        mService.setShuffleMode(IMusicPlaybackService.SHUFFLE_NONE);
                         break;
-                    case MusicPlaybackService.SHUFFLE_AUTO:
-                        mService.setShuffleMode(MusicPlaybackService.SHUFFLE_NONE);
+                    case IMusicPlaybackService.SHUFFLE_AUTO:
+                        mService.setShuffleMode(IMusicPlaybackService.SHUFFLE_NONE);
                         break;
                     default:
                         break;
@@ -606,9 +605,9 @@ public final class MusicUtils {
         }
         try {
             if (forceShuffle) {
-                mService.setShuffleMode(MusicPlaybackService.SHUFFLE_NORMAL);
+                mService.setShuffleMode(IMusicPlaybackService.SHUFFLE_NORMAL);
             } else {
-                mService.setShuffleMode(MusicPlaybackService.SHUFFLE_NONE);
+                mService.setShuffleMode(IMusicPlaybackService.SHUFFLE_NONE);
             }
             final long currentId = mService.getAudioId();
             final int currentQueuePosition = getQueuePosition();
@@ -636,7 +635,7 @@ public final class MusicUtils {
             return;
         }
         try {
-            mService.enqueue(list, MusicPlaybackService.NEXT);
+            mService.enqueue(list, IMusicPlaybackService.NEXT);
         } catch (final RemoteException ignored) {
         }
     }
@@ -652,7 +651,7 @@ public final class MusicUtils {
             return;
         }
         try {
-            mService.setShuffleMode(MusicPlaybackService.SHUFFLE_NORMAL);
+            mService.setShuffleMode(IMusicPlaybackService.SHUFFLE_NORMAL);
             final long mCurrentId = mService.getAudioId();
             final int mCurrentQueuePosition = getQueuePosition();
             if (position != -1 && mCurrentQueuePosition == position
@@ -845,7 +844,7 @@ public final class MusicUtils {
             return;
         }
         try {
-            mService.enqueue(list, MusicPlaybackService.LAST);
+            mService.enqueue(list, IMusicPlaybackService.LAST);
             final String message = makeLabel(context, R.plurals.NNNtrackstoqueue, list.length);
             AppMsg.makeText((Activity)context, message, AppMsg.STYLE_CONFIRM).show();
         } catch (final RemoteException ignored) {
@@ -1243,9 +1242,9 @@ public final class MusicUtils {
         }
 
         if (old == 0 || sForegroundActivities == 0) {
-            final Intent intent = new Intent(context, MusicPlaybackService.class);
-            intent.setAction(MusicPlaybackService.FOREGROUND_STATE_CHANGED);
-            intent.putExtra(MusicPlaybackService.NOW_IN_FOREGROUND, sForegroundActivities != 0);
+            final Intent intent = new Intent(context, PlaybackSpecificImplementation.getMusicPlaybackServiceClass());
+            intent.setAction(IMusicPlaybackService.FOREGROUND_STATE_CHANGED);
+            intent.putExtra(IMusicPlaybackService.NOW_IN_FOREGROUND, sForegroundActivities != 0);
             context.startService(intent);
         }
     }

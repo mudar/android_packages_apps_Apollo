@@ -17,7 +17,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 
-import com.andrew.apollo.MusicPlaybackService;
+import com.andrew.apollo.remote.IMusicPlaybackService;
 
 public abstract class AppWidgetBase extends AppWidgetProvider {
 
@@ -25,7 +25,7 @@ public abstract class AppWidgetBase extends AppWidgetProvider {
             final ComponentName serviceName) {
         Intent intent = new Intent(action);
         intent.setComponent(serviceName);
-        intent.putExtra(MusicPlaybackService.NOW_IN_FOREGROUND, false);
+        intent.putExtra(IMusicPlaybackService.NOW_IN_FOREGROUND, false);
         return PendingIntent.getService(context, 0, intent, 0);
     }
 
