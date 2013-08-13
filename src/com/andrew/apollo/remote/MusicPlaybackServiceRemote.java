@@ -46,6 +46,7 @@ import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.media.AudioManager.OnAudioFocusChangeListener;
 import android.media.MediaMetadataRetriever;
+import android.media.MediaPlayer;
 import android.media.RemoteControlClient;
 import android.media.audiofx.AudioEffect;
 import android.net.Uri;
@@ -76,7 +77,7 @@ import java.util.TreeSet;
 @SuppressLint("NewApi")
 public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybackService {
     private static final String TAG = "MusicPlaybackServiceRemote";
-    private static final boolean D = false;
+    private static final boolean D = true;
 
     /**
      * Used by the alarm intent to shutdown the service after being idle
@@ -424,7 +425,7 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
         registerExternalStorageListener();
 
         // Initialize the media player
-        mPlayer = new MultiPlayer(this);
+        mPlayer = new MultiPlayer(this, getApplicationContext());
         mPlayer.setHandler(mPlayerHandler);
 
         // Initialize the intent filter and each action
@@ -1852,10 +1853,11 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
                 return;
             }
             mPlayPos = pos;
-            stop(false);
-            mPlayPos = pos;
-            openCurrentAndNext();
-            play();
+//            stop(false);
+//            mPlayPos = pos;
+//            openCurrentAndNext();
+//            play();
+            mPlayer.next();
             notifyChange(META_CHANGED);
         }
     }
@@ -1883,9 +1885,10 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
                     mPlayPos = mPlayListLen - 1;
                 }
             }
-            stop(false);
-            openCurrent();
-            play();
+            mPlayer.prev();
+//            stop(false);
+//            openCurrent();
+//            play();
             notifyChange(META_CHANGED);
         }
     }
@@ -2285,7 +2288,9 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
 
         private final WeakReference<MusicPlaybackServiceRemote> mService;
 
-        private MediaPlayerRemote mCurrentMediaPlayer = new MediaPlayerRemote(null);
+        private Context mContext;
+
+        private MediaPlayerRemote mCurrentMediaPlayer;
 
         private MediaPlayerRemote mNextMediaPlayer;
 
@@ -2296,7 +2301,9 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
         /**
          * Constructor of <code>MultiPlayer</code>
          */
-        public MultiPlayer(final MusicPlaybackServiceRemote service) {
+        public MultiPlayer(final MusicPlaybackServiceRemote service, final Context context) {
+            mContext = context;
+            mCurrentMediaPlayer = new MediaPlayerRemote(mContext);
             mService = new WeakReference<MusicPlaybackServiceRemote>(service);
             mCurrentMediaPlayer.setWakeMode(mService.get(), PowerManager.PARTIAL_WAKE_LOCK);
         }
@@ -2361,7 +2368,7 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
             if (path == null) {
                 return;
             }
-            mNextMediaPlayer = new MediaPlayerRemote(null);
+            mNextMediaPlayer = new MediaPlayerRemote(mContext);
             mNextMediaPlayer.setWakeMode(mService.get(), PowerManager.PARTIAL_WAKE_LOCK);
             mNextMediaPlayer.setAudioSessionId(getAudioSessionId());
             if (setDataSourceImpl(mNextMediaPlayer, path)) {
@@ -2403,6 +2410,14 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
         public void stop() {
             mCurrentMediaPlayer.reset();
             mIsInitialized = false;
+        }
+        
+        public void next() {
+            mCurrentMediaPlayer.next();
+        }
+        
+        public void prev() {
+            mCurrentMediaPlayer.prev();
         }
 
         /**
@@ -2485,7 +2500,7 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
                 case IMediaPlayer.MEDIA_ERROR_SERVER_DIED:
                     mIsInitialized = false;
                     mCurrentMediaPlayer.release();
-                    mCurrentMediaPlayer = new MediaPlayerRemote(null);
+                    mCurrentMediaPlayer = new MediaPlayerRemote(mContext);
                     mCurrentMediaPlayer.setWakeMode(mService.get(), PowerManager.PARTIAL_WAKE_LOCK);
                     mHandler.sendMessageDelayed(mHandler.obtainMessage(SERVER_DIED), 2000);
                     return true;
