@@ -46,7 +46,7 @@ import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.media.AudioManager.OnAudioFocusChangeListener;
 import android.media.MediaMetadataRetriever;
-import android.media.MediaPlayer;
+//import android.media.MediaPlayer;
 import android.media.RemoteControlClient;
 import android.media.audiofx.AudioEffect;
 import android.net.Uri;
@@ -1853,10 +1853,10 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
                 return;
             }
             mPlayPos = pos;
-//            stop(false);
-//            mPlayPos = pos;
-//            openCurrentAndNext();
-//            play();
+            // stop(false);
+            // mPlayPos = pos;
+            // openCurrentAndNext();
+            // play();
             mPlayer.next();
             notifyChange(META_CHANGED);
         }
@@ -1886,9 +1886,9 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
                 }
             }
             mPlayer.prev();
-//            stop(false);
-//            openCurrent();
-//            play();
+            // stop(false);
+            // openCurrent();
+            // play();
             notifyChange(META_CHANGED);
         }
     }
@@ -2320,7 +2320,7 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
         }
 
         /**
-         * @param player The {@link MediaPlayer} to use
+         * @param player The {@link MediaPlayerRemote} to use
          * @param path The path of the file, or the http/rtsp URL of the stream
          *            you want to play
          * @return True if the <code>player</code> has been prepared and is
@@ -2354,7 +2354,7 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
         }
 
         /**
-         * Set the MediaPlayer to start when this MediaPlayer finishes playback.
+         * Set the MediaPlayerRemote to start when this MediaPlayerRemote finishes playback.
          * 
          * @param path The path of the file, or the http/rtsp URL of the stream
          *            you want to play
@@ -2411,11 +2411,11 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
             mCurrentMediaPlayer.reset();
             mIsInitialized = false;
         }
-        
+
         public void next() {
             mCurrentMediaPlayer.next();
         }
-        
+
         public void prev() {
             mCurrentMediaPlayer.prev();
         }
