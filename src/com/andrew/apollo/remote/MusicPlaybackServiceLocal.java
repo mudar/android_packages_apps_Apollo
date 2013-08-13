@@ -161,12 +161,12 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
     /**
      * Used to save the queue as reverse hexadecimal numbers, which we can
-     * generate faster than normal decimal or hexadecimal numbers, which in
-     * turn allows us to save the playlist more often without worrying too
-     * much about performance
+     * generate faster than normal decimal or hexadecimal numbers, which in turn
+     * allows us to save the playlist more often without worrying too much about
+     * performance
      */
     private static final char HEX_DIGITS[] = new char[] {
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
     };
 
     /**
@@ -211,8 +211,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
     private WakeLock mWakeLock;
 
     /**
-     * Alarm intent for removing the notification when nothing is playing
-     * for some time
+     * Alarm intent for removing the notification when nothing is playing for
+     * some time
      */
     private AlarmManager mAlarmManager;
     private PendingIntent mShutdownIntent;
@@ -225,8 +225,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
     private Cursor mCursor;
 
     /**
-     * The cursor used to retrieve info on the album the current track is
-     * part of, if any.
+     * The cursor used to retrieve info on the album the current track is part
+     * of, if any.
      */
     private Cursor mAlbumCursor;
 
@@ -327,7 +327,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      */
     @Override
     public IBinder onBind(final Intent intent) {
-        if (D) Log.d(TAG, "Service bound, intent = " + intent);
+        if (D)
+            Log.d(TAG, "Service bound, intent = " + intent);
         cancelShutdown();
         mServiceInUse = true;
         return mBinder;
@@ -340,7 +341,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      */
     @Override
     public boolean onUnbind(final Intent intent) {
-        if (D) Log.d(TAG, "Service unbound");
+        if (D)
+            Log.d(TAG, "Service unbound");
         mServiceInUse = false;
         saveQueue(true);
 
@@ -379,7 +381,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      */
     @Override
     public void onCreate() {
-        if (D) Log.d(TAG, "Creating service");
+        if (D)
+            Log.d(TAG, "Creating service");
         super.onCreate();
 
         // Initialize the favorites and recents databases
@@ -407,7 +410,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
         // Initialize the audio manager and register any headset controls for
         // playback
-        mAudioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         mMediaButtonReceiverComponent = new ComponentName(getPackageName(),
                 MediaButtonIntentReceiver.class.getName());
         mAudioManager.registerMediaButtonEventReceiver(mMediaButtonReceiverComponent);
@@ -439,7 +442,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
         registerReceiver(mIntentReceiver, filter);
 
         // Initialize the wake lock
-        final PowerManager powerManager = (PowerManager)getSystemService(Context.POWER_SERVICE);
+        final PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, getClass().getName());
         mWakeLock.setReferenceCounted(false);
 
@@ -483,18 +486,18 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
             mRemoteControlClient.setOnGetPlaybackPositionListener(
                     new RemoteControlClient.OnGetPlaybackPositionListener() {
-                @Override
-                public long onGetPlaybackPosition() {
-                    return position();
-                }
-            });
+                        @Override
+                        public long onGetPlaybackPosition() {
+                            return position();
+                        }
+                    });
             mRemoteControlClient.setPlaybackPositionUpdateListener(
                     new RemoteControlClient.OnPlaybackPositionUpdateListener() {
-                @Override
-                public void onPlaybackPositionUpdate(long newPositionMs) {
-                    seek(newPositionMs);
-                }
-            });
+                        @Override
+                        public void onPlaybackPositionUpdate(long newPositionMs) {
+                            seek(newPositionMs);
+                        }
+                    });
         }
 
         mRemoteControlClient.setTransportControlFlags(flags);
@@ -506,7 +509,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      */
     @Override
     public void onDestroy() {
-        if (D) Log.d(TAG, "Destroying service");
+        if (D)
+            Log.d(TAG, "Destroying service");
         super.onDestroy();
         // Remove any sound effects
         final Intent audioEffectsIntent = new Intent(
@@ -551,7 +555,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      */
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
-        if (D) Log.d(TAG, "Got new intent " + intent + ", startId = " + startId);
+        if (D)
+            Log.d(TAG, "Got new intent " + intent + ", startId = " + startId);
         mServiceStartId = startId;
 
         if (intent != null) {
@@ -584,7 +589,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
             return;
         }
 
-        if (D) Log.d(TAG, "Nothing is playing anymore, releasing notification");
+        if (D)
+            Log.d(TAG, "Nothing is playing anymore, releasing notification");
         mNotificationHelper.killNotification();
         mAudioManager.abandonAudioFocus(mAudioFocusListener);
 
@@ -598,7 +604,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
         final String action = intent.getAction();
         final String command = SERVICECMD.equals(action) ? intent.getStringExtra(CMDNAME) : null;
 
-        if (D) Log.d(TAG, "handleCommandIntent: action = " + action + ", command = " + command);
+        if (D)
+            Log.d(TAG, "handleCommandIntent: action = " + action + ", command = " + command);
 
         if (CMDNEXT.equals(command) || NEXT_ACTION.equals(action)) {
             gotoNext(true);
@@ -711,14 +718,16 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
     }
 
     private void scheduleDelayedShutdown() {
-        if (D) Log.v(TAG, "Scheduling shutdown in " + IDLE_DELAY + " ms");
+        if (D)
+            Log.v(TAG, "Scheduling shutdown in " + IDLE_DELAY + " ms");
         mAlarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 SystemClock.elapsedRealtime() + IDLE_DELAY, mShutdownIntent);
         mShutdownScheduled = true;
     }
 
     private void cancelShutdown() {
-        if (D) Log.d(TAG, "Cancelling delayed shutdown, scheduled = " + mShutdownScheduled);
+        if (D)
+            Log.d(TAG, "Cancelling delayed shutdown, scheduled = " + mShutdownScheduled);
         if (mShutdownScheduled) {
             mAlarmManager.cancel(mShutdownIntent);
             mShutdownScheduled = false;
@@ -727,11 +736,12 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
     /**
      * Stops playback
-     *
+     * 
      * @param goToIdle True to go to the idle state, false otherwise
      */
     private void stop(final boolean goToIdle) {
-        if (D) Log.d(TAG, "Stopping playback, goToIdle = " + goToIdle);
+        if (D)
+            Log.d(TAG, "Stopping playback, goToIdle = " + goToIdle);
         if (mPlayer.isInitialized()) {
             mPlayer.stop();
         }
@@ -749,7 +759,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      * Removes the range of tracks specified from the play list. If a file
      * within the range is the file currently being played, playback will move
      * to the next file after the range.
-     *
+     * 
      * @param first The first file to be removed
      * @param last The last file to be removed
      * @return the number of tracks deleted
@@ -801,7 +811,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
     /**
      * Adds a list to the playlist
-     *
+     * 
      * @param list The list to add
      * @param position The position to place the tracks
      */
@@ -865,7 +875,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
             return null;
         }
         return c;
-     }
+    }
 
     private void closeCursor() {
         if (mCursor != null) {
@@ -889,7 +899,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
     /**
      * Called to open a new file as the current track and prepare the next for
      * playback
-     *
+     * 
      * @param openNext True to prepare the next track for playback, false
      *            otherwise.
      */
@@ -1024,7 +1034,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      */
     private void setNextTrack() {
         mNextPlayPos = getNextPosition(false);
-        if (D) Log.d(TAG, "setNextTrack: next play position = " + mNextPlayPos);
+        if (D)
+            Log.d(TAG, "setNextTrack: next play position = " + mNextPlayPos);
         if (mNextPlayPos >= 0 && mPlayList != null) {
             final long id = mPlayList[mNextPlayPos];
             mPlayer.setNextDataSource(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI + "/" + id);
@@ -1116,7 +1127,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
     /**
      * Makes sure the playlist has enough space to hold all of the songs
-     *
+     * 
      * @param size The size of the playlist
      */
     private void ensurePlayListCapacity(final int size) {
@@ -1139,7 +1150,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      * Notify the change-receivers that something has changed.
      */
     private void notifyChange(final String what) {
-        if (D) Log.d(TAG, "notifyChange: what = " + what);
+        if (D)
+            Log.d(TAG, "notifyChange: what = " + what);
 
         // Update the lockscreen controls
         updateRemoteControlClient(what);
@@ -1190,7 +1202,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
     /**
      * Updates the lockscreen controls.
-     *
+     * 
      * @param what The broadcast
      */
     private void updateRemoteControlClient(final String what) {
@@ -1205,7 +1217,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
         } else if (what.equals(META_CHANGED) || what.equals(QUEUE_CHANGED)) {
             Bitmap albumArt = getAlbumArt();
             if (albumArt != null) {
-                // RemoteControlClient wants to recycle the bitmaps thrown at it, so we need
+                // RemoteControlClient wants to recycle the bitmaps thrown at
+                // it, so we need
                 // to make sure not to hand out our cache copy
                 Bitmap.Config config = albumArt.getConfig();
                 if (config == null) {
@@ -1228,7 +1241,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
     /**
      * Saves the queue
-     *
+     * 
      * @param full True if the queue is full
      */
     private void saveQueue(final boolean full) {
@@ -1248,7 +1261,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
                     q.append("0;");
                 } else {
                     while (n != 0) {
-                        final int digit = (int)(n & 0xf);
+                        final int digit = (int) (n & 0xf);
                         n >>>= 4;
                         q.append(HEX_DIGITS[digit]);
                     }
@@ -1408,7 +1421,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      * @see com.andrew.apollo.IMusicPlaybackService#openFile(java.lang.String)
      */
     public boolean openFile(final String path) {
-        if (D) Log.d(TAG, "openFile: path = " + path);
+        if (D)
+            Log.d(TAG, "openFile: path = " + path);
         synchronized (this) {
             if (path == null) {
                 return false;
@@ -1764,7 +1778,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
         int status = mAudioManager.requestAudioFocus(mAudioFocusListener,
                 AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
-        if (D) Log.d(TAG, "Starting playback: audio focus request status = " + status);
+        if (D)
+            Log.d(TAG, "Starting playback: audio focus request status = " + status);
 
         if (status != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             return;
@@ -1801,7 +1816,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      * @see com.andrew.apollo.IMusicPlaybackService#pause()
      */
     public void pause() {
-        if (D) Log.d(TAG, "Pausing playback");
+        if (D)
+            Log.d(TAG, "Pausing playback");
         synchronized (this) {
             mPlayerHandler.removeMessages(FADEUP);
             if (mIsSupposedToBePlaying) {
@@ -1818,10 +1834,12 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      * @see com.andrew.apollo.IMusicPlaybackService#gotoNext(boolean)
      */
     public void gotoNext(final boolean force) {
-        if (D) Log.d(TAG, "Going to next track");
+        if (D)
+            Log.d(TAG, "Going to next track");
         synchronized (this) {
             if (mPlayListLen <= 0) {
-                if (D) Log.d(TAG, "No play queue");
+                if (D)
+                    Log.d(TAG, "No play queue");
                 scheduleDelayedShutdown();
                 return;
             }
@@ -1848,7 +1866,8 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
      * @see com.andrew.apollo.IMusicPlaybackService#prev()
      */
     public void prev() {
-        if (D) Log.d(TAG, "Going to previous track");
+        if (D)
+            Log.d(TAG, "Going to previous track");
         synchronized (this) {
             if (mShuffleMode == SHUFFLE_NORMAL) {
                 // Go to previously-played track and remove it from the history
@@ -2112,7 +2131,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
         /**
          * Constructor of <code>MusicPlayerHandler</code>
-         *
+         * 
          * @param service The service to use.
          * @param looper The thread to run on.
          */
@@ -2179,13 +2198,14 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
                     service.mWakeLock.release();
                     break;
                 case FOCUSCHANGE:
-                    if (D) Log.d(TAG, "Received audio focus change event " + msg.arg1);
+                    if (D)
+                        Log.d(TAG, "Received audio focus change event " + msg.arg1);
                     switch (msg.arg1) {
                         case AudioManager.AUDIOFOCUS_LOSS:
                         case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
                             if (service.isPlaying()) {
                                 service.mPausedByTransientLossOfFocus =
-                                    msg.arg1 == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT;
+                                        msg.arg1 == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT;
                             }
                             service.pause();
                             break;
@@ -2329,7 +2349,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
         /**
          * Set the MediaPlayer to start when this MediaPlayer finishes playback.
-         *
+         * 
          * @param path The path of the file, or the http/rtsp URL of the stream
          *            you want to play
          */
@@ -2357,7 +2377,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
         /**
          * Sets the handler
-         *
+         * 
          * @param handler The handler to use
          */
         public void setHandler(final Handler handler) {
@@ -2403,7 +2423,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
         /**
          * Gets the duration of the file.
-         *
+         * 
          * @return The duration in milliseconds
          */
         public long duration() {
@@ -2412,7 +2432,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
         /**
          * Gets the current playback position.
-         *
+         * 
          * @return The current position in milliseconds
          */
         public long position() {
@@ -2421,18 +2441,18 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
         /**
          * Gets the current playback position.
-         *
+         * 
          * @param whereto The offset in milliseconds from the start to seek to
          * @return The offset in milliseconds from the start to seek to
          */
         public long seek(final long whereto) {
-            mCurrentMediaPlayer.seekTo((int)whereto);
+            mCurrentMediaPlayer.seekTo((int) whereto);
             return whereto;
         }
 
         /**
          * Sets the volume on this player.
-         *
+         * 
          * @param vol Left and right volume scalar
          */
         public void setVolume(final float vol) {
@@ -2441,7 +2461,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
         /**
          * Sets the audio session ID.
-         *
+         * 
          * @param sessionId The audio session ID
          */
         public void setAudioSessionId(final int sessionId) {
@@ -2450,7 +2470,7 @@ public class MusicPlaybackServiceLocal extends Service implements IMusicPlayback
 
         /**
          * Returns the audio session ID.
-         *
+         * 
          * @return The current audio session ID.
          */
         public int getAudioSessionId() {
