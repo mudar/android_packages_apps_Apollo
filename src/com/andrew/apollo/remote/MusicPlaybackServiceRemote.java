@@ -13,6 +13,7 @@ package com.andrew.apollo.remote;
 
 import ca.mudar.apollo.remote.media.IMediaPlayer;
 import ca.mudar.apollo.remote.media.MediaPlayerRemote;
+import ca.mudar.apollo.remote.observer.SettingsContentObserver;
 
 import com.andrew.apollo.IApolloService;
 import com.andrew.apollo.MediaButtonIntentReceiver;
@@ -46,7 +47,6 @@ import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.media.AudioManager.OnAudioFocusChangeListener;
 import android.media.MediaMetadataRetriever;
-//import android.media.MediaPlayer;
 import android.media.RemoteControlClient;
 import android.media.audiofx.AudioEffect;
 import android.net.Uri;
@@ -78,6 +78,8 @@ import java.util.TreeSet;
 public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybackService {
     private static final String TAG = "MusicPlaybackServiceRemote";
     private static final boolean D = true;
+
+    private SettingsContentObserver mSettingsContentObserver;
 
     /**
      * Used by the alarm intent to shutdown the service after being idle
@@ -385,6 +387,8 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
             Log.d(TAG, "Creating service");
         super.onCreate();
 
+        mSettingsContentObserver = new SettingsContentObserver(this, new Handler());
+
         // Initialize the favorites and recents databases
         mRecentsCache = RecentStore.getInstance(this);
         mFavoritesCache = FavoritesStore.getInstance(this);
@@ -606,6 +610,22 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
 
         if (D)
             Log.d(TAG, "handleCommandIntent: action = " + action + ", command = " + command);
+
+        if (FOREGROUND_STATE_CHANGED.equals(action)) {
+            if (mAnyActivityInForeground) {
+                if (D)
+                    Log.d(TAG, "registerContentObserver ON");
+                getApplicationContext().getContentResolver().registerContentObserver(
+                        android.provider.Settings.System.CONTENT_URI, true,
+                        mSettingsContentObserver);
+            }
+            else {
+                if (D)
+                    Log.d(TAG, "unregisterContentObserver OFF");
+                getApplicationContext().getContentResolver().unregisterContentObserver(
+                        mSettingsContentObserver);
+            }
+        }
 
         if (CMDNEXT.equals(command) || NEXT_ACTION.equals(action)) {
             gotoNext(true);
@@ -2354,7 +2374,8 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
         }
 
         /**
-         * Set the MediaPlayerRemote to start when this MediaPlayerRemote finishes playback.
+         * Set the MediaPlayerRemote to start when this MediaPlayerRemote
+         * finishes playback.
          * 
          * @param path The path of the file, or the http/rtsp URL of the stream
          *            you want to play
@@ -2470,7 +2491,7 @@ public class MusicPlaybackServiceRemote extends Service implements IMusicPlaybac
          * @param vol Left and right volume scalar
          */
         public void setVolume(final float vol) {
-            mCurrentMediaPlayer.setVolume(vol, vol);
+            mCurrentMediaPlayer.setVolume(vol);
         }
 
         /**
