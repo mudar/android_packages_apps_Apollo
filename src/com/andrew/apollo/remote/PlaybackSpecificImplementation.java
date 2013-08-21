@@ -1,7 +1,6 @@
 
 package com.andrew.apollo.remote;
 
-
 public class PlaybackSpecificImplementation {
 
     private static boolean isLocal = false;
@@ -14,5 +13,13 @@ public class PlaybackSpecificImplementation {
 
     public static Class<?> getMusicPlaybackServiceClass() {
         return (isLocal ? MusicPlaybackServiceLocal.class : MusicPlaybackServiceRemote.class);
+    }
+
+    public static boolean isLocal() {
+        return isLocal;
+    }
+
+    public static boolean isRemote() {
+        return !isLocal;
     }
 }

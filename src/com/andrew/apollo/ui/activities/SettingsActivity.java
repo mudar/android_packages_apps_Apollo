@@ -11,8 +11,13 @@
 
 package com.andrew.apollo.ui.activities;
 
+import ca.mudar.apollo.remote.ApiConst;
+import ca.mudar.apollo.remote.ApiConst.ApiCommands;
+import ca.mudar.apollo.remote.service.ApolloApiService;
+
 import com.andrew.apollo.R;
 import com.andrew.apollo.cache.ImageCache;
+import com.andrew.apollo.remote.PlaybackSpecificImplementation;
 import com.andrew.apollo.ui.fragments.ThemeFragment;
 import com.andrew.apollo.utils.ApolloUtils;
 import com.andrew.apollo.utils.MusicUtils;
@@ -65,7 +70,15 @@ public class SettingsActivity extends PreferenceActivity {
         getActionBar().setDisplayHomeAsUpEnabled(true);
 
         // Add the preferences
-        addPreferencesFromResource(R.xml.settings);
+        if (PlaybackSpecificImplementation.isRemote()) {
+            addPreferencesFromResource(R.xml.settings_remote);
+
+            // Synchronize with remote library
+            syncRemoteLibrary();
+        }
+        else {
+            addPreferencesFromResource(R.xml.settings);
+        }
 
         // Interface settings
         initInterface();
@@ -151,6 +164,37 @@ public class SettingsActivity extends PreferenceActivity {
                 final Intent themeChooserIntent = new Intent(SettingsActivity.this,
                         ThemesActivity.class);
                 startActivity(themeChooserIntent);
+                return true;
+            }
+        });
+    }
+
+    /**
+     * Syncrhnize local and libraries
+     */
+    private void syncRemoteLibrary() {
+        final Preference syncLibrary = findPreference("sync_library");
+        syncLibrary.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(final Preference preference) {
+                new AlertDialog.Builder(SettingsActivity.this)
+                        .setMessage(R.string.dialog_warning_sync)
+                        .setPositiveButton(android.R.string.ok, new OnClickListener() {
+                            @Override
+                            public void onClick(final DialogInterface dialog, final int which) {
+                                Intent intent = new Intent(Intent.ACTION_SYNC, null,
+                                        getApplicationContext(),
+                                        ApolloApiService.class);
+                                intent.putExtra(ApiConst.INTENT_EXTRA_API_COMMAND,
+                                        ApiCommands.LIBRARY_ALL_TRACKS);
+                                startService(intent);
+                            }
+                        }).setNegativeButton(R.string.cancel, new OnClickListener() {
+                            @Override
+                            public void onClick(final DialogInterface dialog, final int which) {
+                                dialog.dismiss();
+                            }
+                        }).create().show();
                 return true;
             }
         });
